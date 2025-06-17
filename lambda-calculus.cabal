@@ -28,7 +28,6 @@ library
       ParserToDo
       Grammar
   other-modules:
-      Lib
       Paths_lambda_calculus
   autogen-modules:
       Paths_lambda_calculus
@@ -43,8 +42,9 @@ library
   default-language: Haskell2010
 
 executable lambda-calculus-exe
-  main-is: Main.hs
+  main-is: Grammar.hs
   other-modules:
+      Main
       Paths_lambda_calculus
   autogen-modules:
       Paths_lambda_calculus

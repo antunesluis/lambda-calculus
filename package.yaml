@@ -39,7 +39,7 @@ library:
 
 executables:
   lambda-calculus-exe:
-    main: Main.hs
+    main: Grammar.hs
     source-dirs: app
     ghc-options:
       - -threaded
