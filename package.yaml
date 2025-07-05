@@ -34,12 +34,13 @@ ghc-options:
 library:
   source-dirs: src
   exposed-modules:
-    - ParserToDo
-    - Grammar
+    - Parser
+    - Syntax
+    - Lam
 
 executables:
   lambda-calculus-exe:
-    main: Grammar.hs
+    main: Main.hs
     source-dirs: app
     ghc-options:
       - -threaded

@@ -1,0 +1,47 @@
+=== Testing Lambda Calculus Parser ===
+Test 1: Simple variable
+Input: x
+Tokens: [TokenVar 'x']
+Parsed: Var 'x'
+
+Test 2: Identity function
+Input: lam x . x
+Tokens: [TokenLam,TokenVar 'x',TokenPoint,TokenVar 'x']
+Parsed: Abs 'x' (Var 'x')
+
+Test 3: Simple application
+Input: (x y)
+Tokens: [TokenOB,TokenVar 'x',TokenVar 'y',TokenCB]
+Parsed: App (Var 'x') (Var 'y')
+
+Test 4: Identity application
+Input: ((lam x . x) y)
+Tokens: [TokenOB,TokenOB,TokenLam,TokenVar 'x',TokenPoint,TokenVar 'x',TokenCB,TokenVar 'y',TokenCB]
+Parsed: App (Abs 'x' (Var 'x')) (Var 'y')
+
+Test 5: Original complex expression
+Input: (((lam x . x) (lam y . y)) z)
+Tokens: [TokenOB,TokenOB,TokenOB,TokenLam,TokenVar 'x',TokenPoint,TokenVar 'x',TokenCB,TokenOB,TokenLam,TokenVar 'y',TokenPoint,TokenVar 'y',TokenCB,TokenCB,TokenVar 'z',TokenCB]
+Parsed: App (App (Abs 'x' (Var 'x')) (Abs 'y' (Var 'y'))) (Var 'z')
+
+=== Testing provided inputs ===
+Input 1:
+Input: (((lam x . x) (lam y . y)) z)
+Tokens: [TokenOB,TokenOB,TokenOB,TokenLam,TokenVar 'x',TokenPoint,TokenVar 'x',TokenCB,TokenOB,TokenLam,TokenVar 'y',TokenPoint,TokenVar 'y',TokenCB,TokenCB,TokenVar 'z',TokenCB]
+Parsed: App (App (Abs 'x' (Var 'x')) (Abs 'y' (Var 'y'))) (Var 'z')
+
+Input 2:
+Input: lam z . z
+Tokens: [TokenLam,TokenVar 'z',TokenPoint,TokenVar 'z']
+Parsed: Abs 'z' (Var 'z')
+
+Input 3:
+Input: ((x y) z)
+Tokens: [TokenOB,TokenOB,TokenVar 'x',TokenVar 'y',TokenCB,TokenVar 'z',TokenCB]
+Parsed: App (App (Var 'x') (Var 'y')) (Var 'z')
+
+Input 4:
+Input: (x y)
+Tokens: [TokenOB,TokenVar 'x',TokenVar 'y',TokenCB]
+Parsed: App (Var 'x') (Var 'y')
+
