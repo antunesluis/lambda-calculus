@@ -1,30 +1,56 @@
 module Main where
 
-import Parser (lexer, parseLambda)
+import Lam
+import Parser
+import System.Environment
+import System.IO
 
-testParser :: String -> IO ()
-testParser input = do
+evalLambdaString :: String -> IO ()
+evalLambdaString input = do
     putStrLn $ "Input: " ++ input
-    putStrLn $ "Tokens: " ++ show (lexer input)
+
+    -- Parse da expressão
     let parsed = parseLambda input
     putStrLn $ "Parsed: " ++ show parsed
+
+    -- Mostra variáveis livres
+    let fvs = freeVars parsed
+    putStrLn $ "Free variables: " ++ show fvs
+
+    -- Avaliação com nomes
+    let result = evaluation parsed
+    putStrLn $ "Result: " ++ show result
+
+    -- Conversão para nameless e avaliação
+    let nameless = removeNames gamma1 parsed
+    putStrLn $ "Nameless: " ++ show nameless
+
+    let namelessResult = evaluationNameL nameless
+    putStrLn $ "Nameless result: " ++ show namelessResult
+
+    -- Restaura nomes do resultado
+    let restored = restoreNames gamma1 namelessResult
+    putStrLn $ "Restored: " ++ show restored
     putStrLn ""
+
+processFile :: String -> IO ()
+processFile filename = do
+    content <- readFile filename
+    evalLambdaString $ filter (/= '\n') content
+
+interactiveMode :: IO ()
+interactiveMode = do
+    putStr "λ> "
+    hFlush stdout
+    input <- getLine
+    if input == "quit"
+        then putStrLn "Saindo..."
+        else evalLambdaString input >> interactiveMode
 
 main :: IO ()
 main = do
-    putStrLn "=== Testing Lambda Calculus Parser ==="
-
-    putStrLn "Test 1: Simple variable"
-    testParser "x"
-
-    putStrLn "Test 2: Identity function"
-    testParser "lam x . x"
-
-    putStrLn "Test 3: Simple application"
-    testParser "(x y)"
-
-    putStrLn "Test 4: Identity application"
-    testParser "((lam x . x) y)"
-
-    putStrLn "Test 5: Original complex expression"
-    testParser "(((lam x . x) (lam y . y)) z)"
+    args <- getArgs
+    case args of
+        [] -> interactiveMode
+        [filename] -> processFile filename
+        _ -> putStrLn "Uso: programa [arquivo]"

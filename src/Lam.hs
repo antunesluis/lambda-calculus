@@ -3,40 +3,34 @@ module Lam where
 import Data.List
 import Syntax
 
--- exemplo
-data Color = Red | Blue | Green deriving (Show, Eq, Ord)
-
--- AST do Calculo-lambda
-
--- data TLam
---     = Var Char -- variavel
---     | Abs Char TLam -- abstracao
---     | App TLam TLam -- aplicacao
---
--- ToDo: Implementar a funcao abaixo: recebe um termo e retorna uma
--- lista de variaveis livres.
-
+-- Recebe um termo e retorna uma lista de variaveis livres.
 freeVars :: TLam -> [Char]
-freeVars (Var x) = undefined
-freeVars (Abs x t) = undefined
-freeVars (App t1 t2) = undefined
+freeVars (Var x) = [x]
+freeVars (Abs x t) = filter (/= x) (freeVars t)
+freeVars (App t1 t2) = nub (freeVars t1 ++ freeVars t2)
 
--- ToDo: Implementar a função de substituição
+-- Implementação da função de substituição
 subs :: Char -> TLam -> TLam -> TLam
 subs x s (Var y) = if (x == y) then s else (Var y)
-subs x s (Abs y t12) = undefined
-subs x s (App t1 t2) = undefined
+subs x s (Abs y t12)
+    | x == y = Abs y t12 -- variável está ligada, não substitui
+    | y `notElem` freeVars s = Abs y (subs x s t12) -- sem captura
+    | otherwise =
+        let y' = newVar (freeVars s ++ freeVars t12)
+         in Abs y' (subs x s (subs y (Var y') t12)) -- α-conversão
+subs x s (App t1 t2) = App (subs x s t1) (subs x s t2)
 
--- ToDo: Implementar a função isVal: recebe um termo lambda e
--- retorna True se é um valor, i.e, se não é aplicação.
+-- Gera uma nova variável que não está em used.
+newVar :: [Char] -> Char
+newVar used = head [c | c <- ['a' .. 'z'], c `notElem` used]
 
+-- Recebe um termo lambda e retorna True se é um valor, i.e, se não é aplicação.
 isVal :: TLam -> Bool
 isVal (Var x) = True
-isVal _ = undefined
+isVal (Abs x t) = True
+isVal (App _ _) = False
 
--- ToDo: Implementar a semântica operacional call-by-value: um
--- passo de beta redução
-
+-- Implementação da semântica operacional call-by-value: um passo de beta redução
 eval :: TLam -> TLam
 eval (Var x) = Var x
 eval (Abs x t) = Abs x t
@@ -46,58 +40,89 @@ eval (App (Abs x t12) t2) =
         else
             let t2' = eval t2
              in (App (Abs x t12) t2')
-eval _ = undefined
+eval (App t1 t2) =
+    let t1' = eval t1
+     in App t1' t2
 
--- aplicando varios passos do eval até que não tenha mais redex:
--- eval recursivo
--- evaluation :: TLam -> TLam
+-- Aplica varios passos do eval até que não tenha mais redex: eval recursivo
+evaluation :: TLam -> TLam
+evaluation t =
+    let t' = eval t
+     in if t == t' then t else evaluation t'
 
--- Teremos uma representacao para termos sem nome
+-- Definição de termos nameless
 data TNameL
-    = VarN Int
-    | AbsN TNameL
-    | AppN TNameL TNameL
+    = VarN Int -- Variável sem nome (índice de Brujin)
+    | AbsN TNameL -- Abstração sem nome da variável
+    | AppN TNameL TNameL -- Aplicação
     deriving (Eq, Show)
 
 -- Contexto Gamma de variáveis livres
-
 type Gamma = [(Char, Int)]
 gamma1 :: Gamma
 gamma1 = [('x', 4), ('y', 3), ('z', 2), ('a', 1), ('b', 0)]
 
--- ToDo
--- Definir uma função removeNames, que recebe um contexto de nomes
--- gamma e um termo lambda com nomes, tal que as variaveis livres do
--- termo devem estar em gamma. A função deve retornar o termo
+-- Recebe um contexto de nomes gamma e um termo lambda com nomes, tal que as
+-- variaveis livres do termo devem estar em gamma. A função deve retornar o termo
 -- nameless correspondente
-
 removeNames :: Gamma -> TLam -> TNameL
-removeNames = undefined
+removeNames gamma (Var x) =
+    case lookup x gamma of
+        Just n -> VarN n
+        Nothing -> error $ "Variable " ++ [x] ++ " not found in context"
+removeNames gamma (Abs x t) =
+    let gamma' = map (\(v, n) -> (v, n + 1)) gamma -- shift existing variables
+        gamma'' = (x, 0) : gamma' -- add new bound variable at index 0
+     in AbsN (removeNames gamma'' t)
+removeNames gamma (App t1 t2) =
+    AppN (removeNames gamma t1) (removeNames gamma t2)
 
--- ToDo
--- Definir uma função restoreNames, que recebe um termo lambda sem
--- nomes e um contexto gamma e produz um termo lambda com nome.
+-- Recebe um termo lambda sem nomes e um contexto gamma e produz um termo lambda com nome.
 -- Para fazer isso, precisamos escolher nomes para as variáveis ligadas.
 -- Podemos inicialmente escolher qualquer nome que não aparece em gamma.
-
 restoreNames :: Gamma -> TNameL -> TLam
-restoreNames = undefined
+restoreNames gamma (VarN n) =
+    case find (\(_, idx) -> idx == n) gamma of
+        Just (c, _) -> Var c
+        Nothing -> error $ "Index " ++ show n ++ " not found in context"
+restoreNames gamma (AbsN t) =
+    let newVarName = head [c | c <- ['a' .. 'z'], c `notElem` map fst gamma]
+        gamma' = (newVarName, 0) : map (\(v, n) -> (v, n + 1)) gamma
+     in Abs newVarName (restoreNames gamma' t)
+restoreNames gamma (AppN t1 t2) =
+    App (restoreNames gamma t1) (restoreNames gamma t2)
 
--- ToDo: Implementar a função de shifting
+-- Função de deslocamento para termos nameless
+shifting :: Int -> Int -> TNameL -> TNameL
+shifting d c (VarN k) = if k >= c then VarN (k + d) else VarN k
+shifting d c (AbsN t) = AbsN (shifting d (c + 1) t)
+shifting d c (AppN t1 t2) = AppN (shifting d c t1) (shifting d c t2)
 
--- shifting :: Int -> Int -> TNameL -> TNameL
--- shitfing = undefined
-
--- ToDo: Implememtar a substituição em termos Nameless
-
+-- Função de substituição para termos nameless
 subsNameL :: Int -> TNameL -> TNameL -> TNameL
-subsNameL = undefined
+subsNameL j s (VarN k) = if k == j then s else VarN k
+subsNameL j s (AbsN t) = AbsN (subsNameL (j + 1) (shifting 1 0 s) t)
+subsNameL j s (AppN t1 t2) = AppN (subsNameL j s t1) (subsNameL j s t2)
 
--- Definir a avaliação para termos sem nome
+-- Implementação da avaliação para termos sem nome
 evalNameL :: TNameL -> TNameL
-evalNameL = undefined
+evalNameL (VarN n) = VarN n
+evalNameL (AbsN t) = AbsN t
+evalNameL (AppN (AbsN t12) t2) =
+    if isValNameL t2
+        then shifting (-1) 0 (subsNameL 0 (shifting 1 0 t2) t12)
+        else AppN (AbsN t12) (evalNameL t2)
+evalNameL (AppN t1 t2) = AppN (evalNameL t1) t2
 
--- Definir um evaluation que aplica recursivamente
+-- Função auxiliar para verificar se um termo nameless é um valor
+isValNameL :: TNameL -> Bool
+isValNameL (VarN _) = True
+isValNameL (AbsN _) = True
+isValNameL (AppN _ _) = False
+
+-- Implementação do evaluation que aplica recursivamente
 -- o eval até que não tenha mais redex
-
--- evaluation :: TNameL -> TNameL
+evaluationNameL :: TNameL -> TNameL
+evaluationNameL t =
+    let t' = evalNameL t
+     in if t == t' then t else evaluationNameL t'
