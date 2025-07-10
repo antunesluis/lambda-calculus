@@ -9,9 +9,11 @@ freeVars (Var x) = [x]
 freeVars (Abs x t) = filter (/= x) (freeVars t)
 freeVars (App t1 t2) = nub (freeVars t1 ++ freeVars t2)
 
--- Implementação da função de substituição
+-- Implementação da função de substituição - recebe a variável a ser substituída,
+-- o termo que irá substituir e o termo onde a substituição deve ocorrer. Retorna um novo
+-- termo com a substituição feita.
 subs :: Char -> TLam -> TLam -> TLam
-subs x s (Var y) = if (x == y) then s else (Var y)
+subs x s (Var y) = if (x == y) then s else (Var y) -- termo analisado é uma variável
 subs x s (Abs y t12)
     | x == y = Abs y t12 -- variável está ligada, não substitui
     | y `notElem` freeVars s = Abs y (subs x s t12) -- sem captura
